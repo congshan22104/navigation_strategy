@@ -1,0 +1,7 @@
+{"time":"2025-04-29T16:59:53.739958318+08:00","level":"INFO","msg":"stream: starting","core version":"0.19.10","symlink path":"logs/ppo_toh_s0_0429_1659/wandb/run-20250429_165953-fmkvujcp/logs/debug-core.log"}
+{"time":"2025-04-29T16:59:54.606281524+08:00","level":"INFO","msg":"created new stream","id":"fmkvujcp"}
+{"time":"2025-04-29T16:59:54.606371413+08:00","level":"INFO","msg":"stream: started","id":"fmkvujcp"}
+{"time":"2025-04-29T16:59:54.606425518+08:00","level":"INFO","msg":"writer: Do: started","stream_id":"fmkvujcp"}
+{"time":"2025-04-29T16:59:54.606438564+08:00","level":"INFO","msg":"sender: started","stream_id":"fmkvujcp"}
+{"time":"2025-04-29T16:59:54.60645752+08:00","level":"INFO","msg":"handler: started","stream_id":"fmkvujcp"}
+{"time":"2025-04-29T16:59:55.0113105+08:00","level":"INFO","msg":"Starting system monitor"}

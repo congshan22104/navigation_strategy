@@ -1,0 +1,98 @@
+[INFO] 2025-04-29 17:01:54 - 环境初始化完成
+[INFO] 2025-04-29 17:01:54 - 日志目录: logs/ppo_toh_s2_0429_1701
+[INFO] 2025-04-29 17:01:54 - 模型目录: logs/ppo_toh_s2_0429_1701/models
+[INFO] 2025-04-29 17:01:54 - 配置目录: logs/ppo_toh_s2_0429_1701/config
+[INFO] 2025-04-29 17:01:54 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:01:54 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:01:54 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:01:54 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:01:54 - 激活奖励组件: ['target_progress', 'obstacle_penalty', 'heading_alignment']
+[INFO] 2025-04-29 17:02:10 - 已初始化 PPO 模型！
+[INFO] 2025-04-29 17:02:10 - 开始训练 PPO 模型...
+[INFO] 2025-04-29 17:02:10 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:02:10 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:02:10 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:02:10 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:02:10 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:02:10 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:02:10 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:02:39 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': 0.257908913473664, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -12.377976175312337, 'episode/step_count': 200, 'episode/target_progress': -1.2479948984917824, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -11.129981276820557}
+[INFO] 2025-04-29 17:02:39 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:02:39 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:02:39 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:02:39 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:02:39 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:02:39 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:02:40 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:03:13 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.015248559302171762, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -29.955173753327603, 'episode/step_count': 200, 'episode/target_progress': -2.6518624964304602, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -39.68128743220948}
+[INFO] 2025-04-29 17:03:13 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:03:13 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:03:13 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:03:13 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:03:13 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:03:13 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:03:14 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:03:46 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.34125238145282955, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -21.91859195868058, 'episode/step_count': 200, 'episode/target_progress': 0.5538430149921725, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -64.80558490231269}
+[INFO] 2025-04-29 17:03:46 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:03:46 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:03:46 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:03:46 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:03:46 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:03:46 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:03:46 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:04:19 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.43601898251344773, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -33.16129729291413, 'episode/step_count': 200, 'episode/target_progress': 1.07517402279876, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -98.48821320303348}
+[INFO] 2025-04-29 17:04:19 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:04:19 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:04:19 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:04:19 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:04:19 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:04:19 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:04:20 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:04:53 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.5409453244226182, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -41.465800932141306, 'episode/step_count': 200, 'episode/target_progress': -0.17955441144940432, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -138.6992857009267}
+[INFO] 2025-04-29 17:04:53 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:04:53 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:04:53 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:04:53 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:04:53 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:04:53 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:04:53 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:05:28 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.3622554997930961, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -27.733187343859594, 'episode/step_count': 200, 'episode/target_progress': -3.315307008066435, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -163.29672044816917}
+[INFO] 2025-04-29 17:05:28 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:05:28 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:05:28 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:05:28 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:05:28 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:05:28 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:05:29 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:06:03 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.25091799618105337, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -18.168958359663236, 'episode/step_count': 200, 'episode/target_progress': 1.2060814107102529, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -185.98706722660887}
+[INFO] 2025-04-29 17:06:03 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:06:03 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:06:03 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:06:03 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:06:03 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:06:03 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:06:03 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:06:42 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.2714954956051701, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -22.098290307653745, 'episode/step_count': 200, 'episode/target_progress': -0.7210930632415268, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -206.15818306031102}
+[INFO] 2025-04-29 17:06:42 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:06:42 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:06:42 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:06:42 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:06:42 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:06:42 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:06:42 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:07:21 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': 0.05835961861681664, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -22.775701357782705, 'episode/step_count': 200, 'episode/target_progress': -0.5888878196202859, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -229.06608966171493}
+[INFO] 2025-04-29 17:07:21 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:07:21 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:07:21 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:07:21 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:07:21 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:07:21 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:07:21 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]
+[INFO] 2025-04-29 17:07:58 - Episode finished: {'step_count': 200, 'done': True, 'total_reward': -0.2798078862167724, 'collision': False, 'arrival': False, 'step_limited': True, 'episode/total_reward': -41.19178020360447, 'episode/step_count': 200, 'episode/target_progress': -1.0430495129370276, 'episode/obstacle_penalty': 0.0, 'episode/heading_alignment': -269.80370817200287}
+[INFO] 2025-04-29 17:07:58 - 仿真环境重置 ...
+[INFO] 2025-04-29 17:07:58 - 已清除 GUI 轨迹
+[INFO] 2025-04-29 17:07:58 - 已断开 PyBullet 连接
+[INFO] 2025-04-29 17:07:58 - 初始化 SingleDroneSim
+[INFO] 2025-04-29 17:07:59 - 成功连接 PyBullet, use_gui=False
+[INFO] 2025-04-29 17:07:59 - 加载地图模型 building_path=assets/building/building.obj
+[INFO] 2025-04-29 17:07:59 - [Init] Blue #0 | ID=1 | Pos=[0.0, 0.0, 0.0]

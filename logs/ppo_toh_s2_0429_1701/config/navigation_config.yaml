@@ -1,0 +1,89 @@
+active_components:
+- target_progress
+algo_name: PPO
+ddpg_init_params:
+  batch_size: 256
+  buffer_size: 1000000
+  device: cuda:0
+  gamma: 0.99
+  gradient_steps: 1
+  learning_rate: 0.001
+  policy: MultiInputPolicy
+  seed: 42
+  tau: 0.005
+  train_freq: 1
+  verbose: 1
+env_params:
+  drone:
+    drone_init_pos:
+    - 0.0
+    - 0.0
+    - 0.0
+  episode:
+    max_episode_timesteps: 200
+  region:
+    x_max: 500
+    x_min: -500
+    y_max: 500
+    y_min: -500
+    z_max: 200
+    z_min: 0
+  reward:
+    active_components:
+    - target_progress
+    - obstacle_penalty
+    - heading_alignment
+    extra_rewards:
+      arrival_bonus: 500.0
+      collision_penalty: -500.0
+  scene:
+    building_path: assets/building/building.obj
+    drone_urdf_path: assets/cf2x.urdf
+    use_gui: false
+feature_extractor_params:
+  mlp_output_dim: 64
+  resnet_output_dim: 25
+  state_dim: 6
+model_learn_params:
+  total_timesteps: 200000
+ppo_init_params:
+  batch_size: 64
+  clip_range: 0.2
+  device: cuda:1
+  ent_coef: 0.0
+  gae_lambda: 0.95
+  gamma: 0.99
+  learning_rate: 0.0003
+  max_grad_norm: 0.5
+  n_epochs: 10
+  n_steps: 2048
+  policy: MultiInputPolicy
+  seed: 2
+  verbose: 1
+  vf_coef: 0.5
+sac_init_params:
+  batch_size: 256
+  buffer_size: 1000000
+  device: cuda:3
+  ent_coef: auto
+  gamma: 0.99
+  gradient_steps: 1
+  learning_rate: 0.0003
+  learning_starts: 2000
+  policy: MultiInputPolicy
+  seed: 4
+  tau: 0.005
+  train_freq: 200
+  verbose: 1
+td3_init_params:
+  batch_size: 256
+  buffer_size: 1000000
+  device: cuda:0
+  gamma: 0.99
+  gradient_steps: 1
+  learning_rate: 0.001
+  policy: MultiInputPolicy
+  seed: 42
+  tau: 0.005
+  train_freq: 1
+  verbose: 1

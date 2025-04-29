@@ -1,0 +1,56 @@
+{
+  "os": "Linux-3.10.0-1127.el7.x86_64-x86_64-with-glibc2.17",
+  "python": "CPython 3.10.16",
+  "startedAt": "2025-04-29T09:01:46.084981Z",
+  "program": "/home/congshan/uav/uav_roundup/navigation_strategy/train_navigation_strategy.py",
+  "codePath": "train_navigation_strategy.py",
+  "email": "congshan22104@163.com",
+  "root": "logs/ppo_t_s1_0429_1701",
+  "host": "k8s-node-01",
+  "executable": "/home/congshan/anaconda3/envs/pybullet_uav_env/bin/python",
+  "codePathLocal": "train_navigation_strategy.py",
+  "cpu_count": 96,
+  "cpu_count_logical": 192,
+  "gpu": "Tesla V100-PCIE-32GB",
+  "gpu_count": 4,
+  "disk": {
+    "/": {
+      "total": "429287014400",
+      "used": "101913886720"
+    }
+  },
+  "memory": {
+    "total": "269895380992"
+  },
+  "cpu": {
+    "count": 96,
+    "countLogical": 192
+  },
+  "gpu_nvidia": [
+    {
+      "name": "Tesla V100-PCIE-32GB",
+      "memoryTotal": "34359738368",
+      "cudaCores": 5120,
+      "architecture": "Volta"
+    },
+    {
+      "name": "Tesla V100-PCIE-32GB",
+      "memoryTotal": "34359738368",
+      "cudaCores": 5120,
+      "architecture": "Volta"
+    },
+    {
+      "name": "Tesla V100-PCIE-32GB",
+      "memoryTotal": "34359738368",
+      "cudaCores": 5120,
+      "architecture": "Volta"
+    },
+    {
+      "name": "Tesla V100-PCIE-32GB",
+      "memoryTotal": "34359738368",
+      "cudaCores": 5120,
+      "architecture": "Volta"
+    }
+  ],
+  "cudaVersion": "12.4"
+}

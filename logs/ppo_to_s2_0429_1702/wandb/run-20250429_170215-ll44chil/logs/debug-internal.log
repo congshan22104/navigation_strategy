@@ -1,0 +1,7 @@
+{"time":"2025-04-29T17:02:16.01455912+08:00","level":"INFO","msg":"stream: starting","core version":"0.19.10","symlink path":"logs/ppo_to_s2_0429_1702/wandb/run-20250429_170215-ll44chil/logs/debug-core.log"}
+{"time":"2025-04-29T17:02:17.509852903+08:00","level":"INFO","msg":"created new stream","id":"ll44chil"}
+{"time":"2025-04-29T17:02:17.509935168+08:00","level":"INFO","msg":"stream: started","id":"ll44chil"}
+{"time":"2025-04-29T17:02:17.509972436+08:00","level":"INFO","msg":"handler: started","stream_id":"ll44chil"}
+{"time":"2025-04-29T17:02:17.509991031+08:00","level":"INFO","msg":"sender: started","stream_id":"ll44chil"}
+{"time":"2025-04-29T17:02:17.509969865+08:00","level":"INFO","msg":"writer: Do: started","stream_id":"ll44chil"}
+{"time":"2025-04-29T17:02:17.87957608+08:00","level":"INFO","msg":"Starting system monitor"}

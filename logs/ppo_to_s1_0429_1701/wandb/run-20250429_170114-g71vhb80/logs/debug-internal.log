@@ -1,0 +1,7 @@
+{"time":"2025-04-29T17:01:14.677221957+08:00","level":"INFO","msg":"stream: starting","core version":"0.19.10","symlink path":"logs/ppo_to_s1_0429_1701/wandb/run-20250429_170114-g71vhb80/logs/debug-core.log"}
+{"time":"2025-04-29T17:01:15.385570206+08:00","level":"INFO","msg":"created new stream","id":"g71vhb80"}
+{"time":"2025-04-29T17:01:15.385833976+08:00","level":"INFO","msg":"stream: started","id":"g71vhb80"}
+{"time":"2025-04-29T17:01:15.386805469+08:00","level":"INFO","msg":"handler: started","stream_id":"g71vhb80"}
+{"time":"2025-04-29T17:01:15.38681228+08:00","level":"INFO","msg":"sender: started","stream_id":"g71vhb80"}
+{"time":"2025-04-29T17:01:15.386818995+08:00","level":"INFO","msg":"writer: Do: started","stream_id":"g71vhb80"}
+{"time":"2025-04-29T17:01:15.826736702+08:00","level":"INFO","msg":"Starting system monitor"}

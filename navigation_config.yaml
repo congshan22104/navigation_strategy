@@ -1,0 +1,89 @@
+# ========== 环境参数 ==========
+env_params:
+  scene:
+    building_path: "assets/building/building.obj" # 建筑物模型路径
+    drone_urdf_path: "assets/cf2x.urdf" # 无人机模型路径
+    use_gui: False # 是否启用图形界面
+  drone:
+    drone_init_pos: [0.0, 0.0, 0.0] # 无人机初始位置 (x, y, z)
+  region:
+    x_min: -500
+    x_max: 500
+    y_min: -500
+    y_max: 500
+    z_min: 0
+    z_max: 200 # 仿真飞行区域范围
+  reward:
+    extra_rewards:
+      arrival_bonus: 500.0 # 成功到达目标奖励
+      collision_penalty: -500.0 # 碰撞惩罚
+    active_components: # 启用的奖励模块
+      - target_progress
+  episode:
+    max_episode_timesteps: 200 # 每回合最大步数
+# ========== PPO初始化参数 ==========
+ppo_init_params:
+  policy: "MultiInputPolicy" # 使用的策略网络
+  learning_rate: 0.0003
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.0
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  verbose: 1
+  device: "cuda:3" # 指定使用第1块GPU
+  seed: 2 # 随机种子（可复现）
+algo_name: "PPO" # 可以选择 "PPO", "SAC", "TD3", "DDPG"
+# ========== 模型学习参数 ==========
+model_learn_params:
+  total_timesteps: 200000 # 总训练步数
+# ========== 特征提取器参数 ==========
+feature_extractor_params:
+  resnet_output_dim: 25 # ResNet编码输出维度
+  state_dim: 6 # 低维状态向量长度
+  mlp_output_dim: 64 # MLP中间层输出维度
+# ------------- SAC初始化参数 -------------
+sac_init_params:
+  policy: "MultiInputPolicy"
+  learning_starts: 2000
+  learning_rate: 0.0003
+  buffer_size: 1000000
+  batch_size: 256
+  tau: 0.005
+  gamma: 0.99
+  train_freq: 200
+  gradient_steps: 1
+  ent_coef: "auto"
+  verbose: 1
+  device: "cuda:3"
+  seed: 4
+# ------------- TD3初始化参数 -------------
+td3_init_params:
+  policy: "MultiInputPolicy"
+  learning_rate: 0.001
+  buffer_size: 1000000
+  batch_size: 256
+  tau: 0.005
+  gamma: 0.99
+  train_freq: 1
+  gradient_steps: 1
+  verbose: 1
+  device: "cuda:0"
+  seed: 42
+# ------------- DDPG初始化参数 -------------
+ddpg_init_params:
+  policy: "MultiInputPolicy"
+  learning_rate: 0.001
+  buffer_size: 1000000
+  batch_size: 256
+  tau: 0.005
+  gamma: 0.99
+  train_freq: 1
+  gradient_steps: 1
+  verbose: 1
+  device: "cuda:0"
+  seed: 42
