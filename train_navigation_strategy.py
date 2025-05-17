@@ -1,8 +1,3 @@
-"""
-train/train_low.py
-训练低层（小兵）策略，使用 LowLevelEnv
-"""
-
 import yaml
 import logging
 import threading
@@ -27,6 +22,7 @@ def main():
 
     env_params = config["env_params"]
     feature_extractor_params = config["feature_extractor_params"]
+    net_arch_parms = config["net_arch"]
     # 1. 基础信息
     algo_name = config["algo_name"].lower()
     seed = config.get(f"{algo_name}_init_params", {}).get("seed", 0)
@@ -68,11 +64,6 @@ def main():
 
     env = NavigationEnv(env_params)
 
-    policy_kwargs = dict(
-        features_extractor_class=FeatureExtractor,
-        features_extractor_kwargs=dict(cfg=feature_extractor_params)
-    )
-
 
     wandb.init(
         project="drone_navigation",
@@ -80,7 +71,12 @@ def main():
         config=config,                  # 直接同步wandb记录超参数
         dir=log_dir                      # wandb日志也放到log_dir下面
     )
-
+    # 提取 policy_kwargs 并合并/确认必要字段
+    policy_kwargs = dict(
+        features_extractor_class=FeatureExtractor,
+        features_extractor_kwargs=dict(cfg=feature_extractor_params),
+        net_arch=net_arch_parms
+    )
     # 1. 读取算法名称
     algo_name = config["algo_name"].upper()
 
@@ -122,15 +118,10 @@ def main():
 
     logging.info(f"已初始化 {algo_name} 模型！")
 
-    wandb_callback = WandbCallback(
-        save_freq=20000,
-        save_path=os.path.join(log_dir, "models")
-    )
-
     logging.info(f"开始训练 {algo_name} 模型...")
     model_learn_params = config["model_learn_params"]
     model.learn(
-        callback=wandb_callback,
+        callback=WandbCallback(env_params, model_dir),
         **model_learn_params
     )
 

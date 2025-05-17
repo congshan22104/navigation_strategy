@@ -4,7 +4,7 @@
 CONFIG_FILE="navigation_config.yaml"
 
 # 遍历需要的种子
-for seed in 0 1 2
+for seed in 0
 do
     echo "正在设置 seed = $seed"
 
@@ -13,6 +13,8 @@ do
     yq eval ".ppo_init_params.seed = $seed" -i $CONFIG_FILE
     yq eval '.ppo_init_params.device = "cuda:3"' -i $CONFIG_FILE
     yq eval '.algo_name = "PPO"' -i $CONFIG_FILE
+    yq eval '.env_params.world_type = "real"' -i $CONFIG_FILE
+
     yq eval '.env_params.reward.active_components = ["target_progress"]' -i $CONFIG_FILE
     # yq eval '.env_params.reward.active_components = ["target_progress", "obstacle_penalty"]' -i $CONFIG_FILE
     # yq eval '.env_params.reward.active_components = ["target_progress", "obstacle_penalty", "heading_alignment"]' -i $CONFIG_FILE

@@ -2,97 +2,135 @@
 
 import torch
 import torch.nn as nn
-import torchvision.models as models
-from torchvision import transforms
-from torchvision.models import resnet18, ResNet18_Weights
-from PIL import Image
-import numpy as np
+from torchvision.models import resnet18, ResNet18_Weights, mobilenet_v2
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from gym.spaces import Dict
+import torch.nn.functional as F
 
 
 class FeatureExtractor(BaseFeaturesExtractor):
-    def __init__(self, observation_space: Dict, features_dim=128, cfg=None):
+    def __init__(self, observation_space: Dict, features_dim=64, cfg=None):
         """
-        使用原始 ResNet18 提取深度图特征并映射为 cfg["resnet_output_dim"]，
-        同时通过 MLP 处理状态向量，并将两者拼接
+        根据 cfg["mode"] 控制是否使用 ResNet18 提取图像特征：
+            - mode="resnet" 使用 CNN + MLP
+            - mode="concat" 直接将展平图像与状态拼接输入 MLP
         """
         super().__init__(observation_space, features_dim)
         self.cfg = cfg or {}
+        self.feature_extractor = self.cfg.get("feature_extractor", "concat")  # 默认使用 ResNet
 
-        # === 1. ResNet 分支 ===
-        resnet = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
-        self.backbone = nn.Sequential(*list(resnet.children())[:-1])  # 输出: [B, 512, 1, 1]
-        self.projector = nn.Linear(512, self.cfg["resnet_output_dim"])
-
-        # === 2. MLP 处理状态向量 ===
-        self.mlp = nn.Sequential(
-            nn.Linear(self.cfg["state_dim"], 512),
-            nn.ReLU(),
-            nn.Linear(512, self.cfg["mlp_output_dim"]),
-            nn.ReLU()
-        )
-
-        # === 3. 特征维度 = ResNet 输出 + MLP 输出 ===
-        self._features_dim = self.cfg["resnet_output_dim"] + 64
-
-        # 图像预处理器
-        self.transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.Grayscale(num_output_channels=3),  # 灰度图复制为 RGB
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
-        ])
+        # === ResNet 图像分支 ===
+        if self.feature_extractor == "resnet":
+            resnet = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
+            self.backbone = nn.Sequential(*list(resnet.children())[:-1])  # [B, 512, 1, 1]
+            self.projector = nn.Sequential(
+                nn.Linear(512, 64),
+                nn.ReLU(),
+                nn.Linear(64, cfg["resnet_output_dim"])
+            )
+            # === 拼接后特征维度（image_feat + state） ===
+            state_dim = observation_space["state"].shape[0]
+            features_dim = cfg["resnet_output_dim"] + state_dim
+            # === 更新特征维度 ===
+            self._features_dim = features_dim
+        elif self.feature_extractor == "concat":
+            # === 直接 flatten image ===
+            image_flatten_dim = cfg["concat_output_dim"]  # 单通道图像（预设)
+            # === 拼接后特征维度（image_feat + state） ===
+            state_dim = observation_space["state"].shape[0]
+            features_dim = image_flatten_dim + state_dim
+            # === 更新特征维度 ===
+            self._features_dim = features_dim
+        elif self.feature_extractor == "mobilenet_v2":
+            self.backbone = mobilenet_v2(weights='DEFAULT').features  # 去除分类层
+            self.pool = nn.AdaptiveAvgPool2d((1, 1))
+            self.projector = nn.Sequential(
+                nn.Linear(1280, 64),
+                nn.ReLU(),
+                nn.Linear(64, cfg["mobilenet_v2_output_dim"])
+            )
+            # === 拼接后特征维度（image_feat + state） ===
+            state_dim = observation_space["state"].shape[0]
+            features_dim = cfg["mobilenet_v2_output_dim"] + state_dim
+            # === 更新特征维度 ===
+            self._features_dim = features_dim
 
     def forward(self, observation):
-        # --- 1. 处理深度图 ---
-        batch_depth = []
-        for depth_np in observation["depth_image"]:
-            depth_img = depth_np.squeeze().cpu().numpy()  # [H, W]
-            processed = self.preprocess_depth_to_3ch(depth_img)
-            batch_depth.append(processed)
-        x1 = torch.cat(batch_depth, dim=0).to(observation["depth_image"].device)  # [B, 3, 224, 224]
+        x_state = observation["state"]  # [B, state_dim]
 
-        features = self.backbone(x1)              # ResNet -> [B, 512, 1, 1]
-        features = features.view(x1.size(0), -1)  # Flatten -> [B, 512]
-        y1 = self.projector(features)             # Project to low-dim -> [B, resnet_output_dim]
+        batch_image_feats = []
 
-        # --- 2. MLP 分支 ---
-        y2 = self.mlp(observation["state"])       # MLP -> [B, 64]
+        for depth_img in observation["depth_image"]:
+            if self.feature_extractor in ["resnet", "mobilenet_v2"]:
+                depth_img = depth_img.unsqueeze(0).unsqueeze(0)  # [H, W]
+                processed = self.preprocess_depth_to_3ch(depth_img)  # [1, 3, 224, 224]
+                batch_image_feats.append(processed)
+            elif self.feature_extractor == "concat":
+                pooled = self.pool_depth_image_min_tensor(depth_img, grid_shape=(4, 4))  # [4, 4]
+                flat = torch.as_tensor(pooled, dtype=torch.float32).flatten()
+                batch_image_feats.append(flat)
 
-        # --- 3. 拼接两个分支 ---
-        fused = torch.cat([y1, y2], dim=1)
-        return fused
+        if self.feature_extractor == "resnet":
+            x_img = torch.cat(batch_image_feats, dim=0)            # [B, 3, 224, 224]
+            features = self.backbone(x_img)                         # [B, 512, 1, 1]
+            features = features.view(x_img.size(0), -1)             # [B, 512]
+            x_image = self.projector(features)                      # [B, resnet_output_dim]
+        elif self.feature_extractor == "concat":
+            x_image = torch.stack(batch_image_feats, dim=0)         # [B, 224*224]
+        elif self.feature_extractor == "mobilenet_v2":
+            x_img = torch.cat(batch_image_feats, dim=0) 
+            feat = self.backbone(x_img)
+            pooled = self.pool(feat)
+            x_image = self.projector(pooled)
 
-    def preprocess_depth_to_3ch(self, depth_image: np.ndarray):
+        # 拼接图像和状态
+        x_fused = torch.cat([x_state, x_image], dim=1)
+        return x_fused  # 最终特征输出
+
+    def preprocess_depth_to_3ch(self, depth_image: torch.Tensor) -> torch.Tensor:
         """
-        将已经归一化到 [0,1] 的单通道深度图扩展为 3 通道，并标准化到 [-1,1]
-        输入: 2D numpy array [224, 224], 值在 [0, 1]
-        输出: Tensor [1, 3, 224, 224]
-        ResNet输入要求：
-            - Tensor shape: [Batch_Size, 3, 224, 224]
-            - dtype: torch.float32
-            - Value range: 通常归一化到 [-1, 1]
-            - 3通道 (RGB)，如果是灰度图需要复制成3通道
-            - 输入尺寸固定为224x224（需要resize）
+        将 [1, 1, H, W] 深度图张量扩展为 3 通道，并归一化到 [-1, 1]。
+
+        参数:
+            depth_image: torch.Tensor，shape = [1, 1, H, W]，float32，值在 [0, 1]
+
+        返回:
+            depth_tensor: torch.Tensor，shape = [1, 3, H, W]，float32，值在 [-1, 1]
         """
-        # 确保输入是 float32
-        if not isinstance(depth_image, np.ndarray):
-            raise TypeError("depth_image must be a numpy array")
-        if depth_image.dtype != np.float32:
-            depth_image = depth_image.astype(np.float32)
+        assert depth_image.dim() == 4 and depth_image.shape[1] == 1, \
+            f"Expected shape [1, 1, H, W], got {depth_image.shape}"
 
-        # 扩展到3通道
-        depth_3ch = np.stack([depth_image] * 3, axis=0)  # [3, 224, 224]
+        # 复制通道：从 [1, 1, H, W] → [1, 3, H, W]
+        depth_3ch = depth_image.repeat(1, 3, 1, 1)
 
-        # 转成Tensor
-        depth_tensor = torch.from_numpy(depth_3ch)  # [3,224,224], float32, [0,1]
+        # 归一化到 [-1, 1]
+        depth_3ch = depth_3ch * 2.0 - 1.0
 
-        # Normalize到 [-1, 1] （注意不是ImageNet mean/std）
-        depth_tensor = depth_tensor * 2.0 - 1.0  # 线性变换 [0,1] → [-1,1]
+        return depth_3ch
 
-        # 加 batch 维度
-        depth_tensor = depth_tensor.unsqueeze(0)  # [1, 3, 224, 224]
+    def pool_depth_image_min_tensor(self, depth_image: torch.Tensor, grid_shape=(4, 4)) -> torch.Tensor:
+        """
+        使用 PyTorch 对 2D 深度图进行最小值池化（min-pooling），按网格划分。
         
+        参数:
+            depth_image: torch.Tensor, shape=(H, W)，float32，取值范围通常在 [0, 1]
+            grid_shape: tuple, (rows, cols)
 
-        return depth_tensor
+        返回:
+            pooled: torch.Tensor, shape=(rows, cols)，每个区域的最小深度
+        """
+        assert depth_image.dim() == 2, f"Expected 2D tensor, got {depth_image.shape}"
+        
+        H, W = depth_image.shape
+        rows, cols = grid_shape
+        h_step, w_step = H // rows, W // cols
+
+        pooled = torch.empty((rows, cols), dtype=depth_image.dtype, device=depth_image.device)
+
+        for i in range(rows):
+            for j in range(cols):
+                region = depth_image[i*h_step:(i+1)*h_step, j*w_step:(j+1)*w_step]
+                pooled[i, j] = torch.min(region)
+
+        return pooled
+
