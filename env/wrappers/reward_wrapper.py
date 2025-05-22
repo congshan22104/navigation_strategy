@@ -53,10 +53,7 @@ class ImageLinearCollisionPenalty(RewardComponent):
             距离小于 5 米时，惩罚为 -1。
         '''
         obs = kwargs.get("obs", {})
-        depth_image = obs.get("depth_image", None)
-
-        if depth_image is None:
-            raise ValueError("[ImageNonlinearCollisionPenalty] obs['depth_image'] is None.")
+        depth_image = obs
 
         # 归一化深度图还原实际距离
         min_range = 0.5
@@ -84,8 +81,7 @@ class ImageNonlinearCollisionPenalty(RewardComponent):
             10米以上给正奖励;
             10米以下给负奖励
         '''
-        obs = kwargs.get("obs", {})
-        depth_image = obs.get("depth_image", None)
+        depth_image = kwargs.get("obs", {})
 
         if depth_image is None:
             raise ValueError("[ImageNonlinearCollisionPenalty] obs['depth_image'] is None.")
@@ -112,8 +108,7 @@ class ImageNonlinearCollisionPenalty(RewardComponent):
 
 class ImageNonlinearCollisionPenalty2(RewardComponent):
     def compute(self, env, **kwargs) -> float:
-        obs = kwargs.get("obs", {})
-        depth_image = obs.get("depth_image", None)
+        depth_image = kwargs.get("obs", {})
 
         if depth_image is None:
             raise ValueError("[ImageNonlinearCollisionPenalty] obs['depth_image'] is None.")
@@ -127,8 +122,8 @@ class ImageNonlinearCollisionPenalty2(RewardComponent):
         # 距离小于5时，惩罚最大-1，距离大于15时，奖励接近1
         # tanh在d=5时应该接近-1，在d=15时接近+1，中心在10
         # 参数调整
-        center = 15       # tanh中心点在距离10m
-        steepness = 0.7   # 控制tanh曲线陡峭程度（越大越陡）
+        center = 20       # tanh中心点在距离20m
+        steepness = 0.3   # 控制tanh曲线陡峭程度（越大越陡）
         
         # tanh输出[-1, 1]
         reward = np.tanh(steepness * (min_depth_real - center))

@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-x = np.linspace(-5, 5, 500)
-steepness_values = [1,2,3,4,5,6,7]
+x = np.linspace(-15, 15, 500)
+steepness_values = [0.1,0.2,0.3,0.4,0.5,0.6,0.7]
 
 plt.figure(figsize=(8, 6))
 
@@ -16,4 +16,4 @@ plt.ylabel('tanh(s * x)')
 plt.legend()
 plt.grid(True)
 
-plt.savefig('/home/congshan/uav/uav_roundup/navigation_strategy/utils/tanh_steepness_variation.png')
+plt.savefig('/home/congshan/uav/uav_roundup/navigation_strategy_2/utils')

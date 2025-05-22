@@ -9,6 +9,7 @@ from stable_baselines3 import PPO, SAC, TD3, DDPG
 from utils.depth_feature_extractor import FeatureExtractor
 from env.navigation_env import NavigationEnv
 from utils.wandb_callback import WandbCallback
+import gym
 
 
 
@@ -32,7 +33,7 @@ def main():
     reward_abbr = "".join([r.split('_')[0][0] for r in active_rewards])  # 每个奖励取第一个单词首字母
 
     # 3. 生成run name
-    time_str = datetime.now().strftime('%m%d_%H%M')  # 月日_时分
+    time_str = datetime.now().strftime('%m%d_%H%M%S')  # 月日_时分
     run_name = f"{algo_name}_{reward_abbr}_s{seed}_{time_str}"
 
     # === 3. 创建日志、模型、配置保存目录
@@ -63,6 +64,7 @@ def main():
         yaml.dump(config, f)
 
     env = NavigationEnv(env_params)
+    
 
 
     wandb.init(
@@ -73,8 +75,8 @@ def main():
     )
     # 提取 policy_kwargs 并合并/确认必要字段
     policy_kwargs = dict(
-        features_extractor_class=FeatureExtractor,
-        features_extractor_kwargs=dict(cfg=feature_extractor_params),
+        # features_extractor_class=FeatureExtractor,
+        # features_extractor_kwargs=dict(cfg=feature_extractor_params),
         net_arch=net_arch_parms
     )
     # 1. 读取算法名称

@@ -89,41 +89,41 @@ class DroneAgent:
         linear_velocity = velocity  # 传入的速度就是要设置的线性速度
         p.resetBaseVelocity(self.id, linearVelocity=linear_velocity)
     
-    def set_orientation_from_velocity(self, velocity):
-        speed = np.linalg.norm(velocity)
-        if speed < 1e-3:
-            return np.eye(3)  # Return identity matrix for default orientation
 
-        # 1. Extract the horizontal component of the velocity (ignoring the vertical component)
-        horizontal_velocity = np.array([velocity[0], velocity[1], 0.0])
-        horizontal_speed = np.linalg.norm(horizontal_velocity)
+    def set_orientation(self):
+        # 1. 计算从当前位置指向目标位置的方向向量
+        direction_vector = self.target_position - self.state.position
 
-        if horizontal_speed < 1e-3:
-            # If horizontal speed is too small (approximately vertical motion), maintain the default horizontal orientation
+        # 2. 提取水平分量（忽略 z 轴/竖直方向）
+        horizontal_direction = np.array([direction_vector[0], direction_vector[1], 0.0])
+        horizontal_distance = np.linalg.norm(horizontal_direction)
+
+        # 3. 如果水平速度太小，保持默认朝向（单位矩阵）
+        if horizontal_distance < 1e-3:
             return np.eye(3)
 
-        # 2. Set the horizontal velocity direction as the body x-axis (head direction)
-        x_axis = horizontal_velocity / horizontal_speed
+        # 4. 设置 x 轴为水平方向
+        x_axis = horizontal_direction / horizontal_distance
 
-        # 3. Define the world z-axis as the upward direction
+        # 5. 设置世界 z 轴为上方向
         world_up = np.array([0.0, 0.0, 1.0])
 
-        # 4. Construct the horizontal y-axis (perpendicular to both world z-axis and x-axis)
+        # 6. 计算 y 轴为 world_up × x_axis
         y_axis = np.cross(world_up, x_axis)
-        y_axis = y_axis / (np.linalg.norm(y_axis) + 1e-6)  # Normalize
+        y_axis /= (np.linalg.norm(y_axis) + 1e-6)
 
-        # 5. Construct the z-axis (x × y, ensuring a right-hand coordinate system)
+        # 7. 计算 z 轴为 x_axis × y_axis（保证右手坐标系）
         z_axis = np.cross(x_axis, y_axis)
 
-        # 6. Assemble the rotation matrix
+        # 8. 组装旋转矩阵
         rotation_matrix = np.column_stack([x_axis, y_axis, z_axis])
 
-        # 7. Convert rotation matrix to quaternion
+        # 9. 转换为四元数
         orn = Rotation.from_matrix(rotation_matrix).as_quat()
 
-        # 8. Keep position unchanged, update orientation based on calculated quaternion
-        pos, _ = p.getBasePositionAndOrientation(self.id)
-        p.resetBasePositionAndOrientation(self.id, pos, orn)
+        # 10. 更新朝向（保持位置不变）
+        p.resetBasePositionAndOrientation(self.id, self.state.position, orn)
+
         
         return orn
 
@@ -201,6 +201,7 @@ class DroneAgent:
 
         # 获取深度图信息
         depth_image = np.array(img_arr[3])  # 深度图
+        # 获取深度图真实信息
         depth_real = far * near / (far - (far - near) * depth_image)
         depth_normalized = (depth_real - near) / (far - near)
         depth_normalized = np.clip(depth_normalized, 0.0, 1.0)
@@ -275,14 +276,14 @@ class DroneAgent:
         
         # 计算速度的水平分量
         horizontal_velocity = np.array([velocity[0], velocity[1], 0.0])
-        horizontal_speed = np.linalg.norm(horizontal_velocity)
+        horizontal_distance = np.linalg.norm(horizontal_velocity)
         
-        if horizontal_speed < tolerance:
+        if horizontal_distance < tolerance:
             # 如果水平速度太小（接近零），认为无人机处于静止状态
             return True
         
         # 将速度向量归一化
-        velocity_direction = horizontal_velocity / horizontal_speed
+        velocity_direction = horizontal_velocity / horizontal_distance
         
         # 归一化头部方向
         heading_direction = heading / np.linalg.norm(heading)

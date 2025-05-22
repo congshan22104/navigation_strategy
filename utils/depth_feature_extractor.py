@@ -28,18 +28,12 @@ class FeatureExtractor(BaseFeaturesExtractor):
                 nn.ReLU(),
                 nn.Linear(64, cfg["resnet_output_dim"])
             )
-            # === 拼接后特征维度（image_feat + state） ===
-            state_dim = observation_space["state"].shape[0]
-            features_dim = cfg["resnet_output_dim"] + state_dim
-            # === 更新特征维度 ===
+            features_dim = cfg["resnet_output_dim"]
             self._features_dim = features_dim
         elif self.feature_extractor == "concat":
             # === 直接 flatten image ===
             image_flatten_dim = cfg["concat_output_dim"]  # 单通道图像（预设)
-            # === 拼接后特征维度（image_feat + state） ===
-            state_dim = observation_space["state"].shape[0]
-            features_dim = image_flatten_dim + state_dim
-            # === 更新特征维度 ===
+            features_dim = image_flatten_dim
             self._features_dim = features_dim
         elif self.feature_extractor == "mobilenet_v2":
             self.backbone = mobilenet_v2(weights='DEFAULT').features  # 去除分类层
@@ -49,20 +43,15 @@ class FeatureExtractor(BaseFeaturesExtractor):
                 nn.ReLU(),
                 nn.Linear(64, cfg["mobilenet_v2_output_dim"])
             )
-            # === 拼接后特征维度（image_feat + state） ===
-            state_dim = observation_space["state"].shape[0]
-            features_dim = cfg["mobilenet_v2_output_dim"] + state_dim
+            features_dim = cfg["mobilenet_v2_output_dim"]
             # === 更新特征维度 ===
             self._features_dim = features_dim
 
     def forward(self, observation):
-        x_state = observation["state"]  # [B, state_dim]
-
         batch_image_feats = []
 
-        for depth_img in observation["depth_image"]:
+        for depth_img in observation:
             if self.feature_extractor in ["resnet", "mobilenet_v2"]:
-                depth_img = depth_img.unsqueeze(0).unsqueeze(0)  # [H, W]
                 processed = self.preprocess_depth_to_3ch(depth_img)  # [1, 3, 224, 224]
                 batch_image_feats.append(processed)
             elif self.feature_extractor == "concat":
@@ -83,9 +72,7 @@ class FeatureExtractor(BaseFeaturesExtractor):
             pooled = self.pool(feat)
             x_image = self.projector(pooled)
 
-        # 拼接图像和状态
-        x_fused = torch.cat([x_state, x_image], dim=1)
-        return x_fused  # 最终特征输出
+        return x_image # 最终特征输出
 
     def preprocess_depth_to_3ch(self, depth_image: torch.Tensor) -> torch.Tensor:
         """

@@ -7,6 +7,7 @@ from gym import spaces
 import numpy as np
 import random
 import logging
+import yaml
 from sim.world import World
 from env.wrappers.reward_wrapper import (
     TargetProgressReward,
@@ -28,6 +29,8 @@ from env.wrappers.reward_wrapper import (
 )
 
 import pybullet as p
+import wandb
+import ast
 
 
 class NavigationEnv(gym.Env):
@@ -38,6 +41,13 @@ class NavigationEnv(gym.Env):
         self._init_obs_space()
         self._init_action_space()
         self._init_reward()
+        self._max_episode_steps = self.env_params['episode']['max_episode_timesteps']
+        self._action_repeat = self.env_params['episode']['action_repeat']
+
+        # 初始化每个组件的回合累计奖励
+        self.episode_total_reward = 0
+        self.episode_component_rewards = {comp.name: 0.0 for comp in self.reward_components}
+        
 
     def _init_simulation(self):
         scene_region = self.env_params['scene']['region']
@@ -57,13 +67,15 @@ class NavigationEnv(gym.Env):
             building_path=building_path
         )
 
-    def _init_action_space(self, mode: str = "adjust"):
+    def _init_action_space(self):
         """
         根据动作控制模式初始化动作空间。
 
         参数:
             mode (str): 'cartesian', 'spherical', 或 'adjust'
         """
+        mode = self.env_params["action"]["type"]
+
         if mode == "cartesian":
             self.action_space = spaces.Box(
                 low=np.array([-15.0, -15.0, -15.0], dtype=np.float32),
@@ -79,38 +91,51 @@ class NavigationEnv(gym.Env):
             )
 
         elif mode == "adjust":
+            self.angle_range = eval(self.env_params["action"]["range"])
             self.action_space = spaces.Box(
-                low=np.array([-np.pi/12, -np.pi/12], dtype=np.float32),  # v_abs, Δθ, Δφ
-                high=np.array([np.pi/12, np.pi/12], dtype=np.float32),
+                low=np.array([-self.angle_range*np.pi, -self.angle_range*np.pi], dtype=np.float32),  # v_abs, Δθ, Δφ
+                high=np.array([self.angle_range*np.pi, self.angle_range*np.pi], dtype=np.float32),
                 dtype=np.float32
             )
+        elif mode == "discrete_adjust":
+            self.action_space = spaces.Discrete(9)
+            self.angle_range = eval(self.env_params["action"]["range"])
+            # 定义离散动作映射表
+            angle_options = [-self.angle_range*np.pi, 0.0, self.angle_range*np.pi]
+            self.action_idx_to_delta = [
+                (dx, dy)
+                for dx in angle_options
+                for dy in angle_options
+            ]
+        
+        elif mode == "horizon_discrete_adjust_3":
+            self.action_space = spaces.Discrete(3)
+            self.angle_range = 1/8
+            # 定义离散动作映射表
+            angle_options = [-1/8*np.pi, 0.0, 1/8*np.pi]
+            self.action_idx_to_delta = angle_options
+        
+        elif mode == "horizon_discrete_adjust_5":
+            self.action_space = spaces.Discrete(5)
+            # 定义离散动作映射表
+            angle_options = [-1/4*np.pi, -1/8*np.pi, 0.0, 1/8*np.pi, 1/4*np.pi]
+            self.action_idx_to_delta = angle_options
+        
+        elif mode == "horizon_discrete_adjust_7":
+            self.action_space = spaces.Discrete(7)
+            # 定义离散动作映射表
+            angle_options = [-3/8*np.pi, -1/4*np.pi, -1/8*np.pi, 0.0, 1/8*np.pi, 1/4*np.pi, 3/8*np.pi]
+            self.action_idx_to_delta = angle_options
+
         else:
             raise ValueError(f"Unsupported control mode: '{mode}'")
 
     def _init_obs_space(self):
-        features = self.env_params['observation']['features']
-        state_dims = 0
-
-        # 统计总共的 state 向量维度
-        if "position" in features:
-            state_dims += 3
-        if "velocity" in features:
-            state_dims += 3
-        if "spherical_velocity" in features:
-            state_dims += 3
-        if "orientation" in features:
-            state_dims += 3
-        if "target" in features:
-            state_dims += 3
-        if "target_relative_position" in features:
-            state_dims += 3  # r, theta, phi
-        if "spherical_direction_error" in features:
-            state_dims += 2  # theta, phi
-
-        self.observation_space = spaces.Dict({
-            "depth_image": spaces.Box(low=0, high=1, shape=(224, 224), dtype=np.float32),
-            "state": spaces.Box(low=-1, high=1, shape=(state_dims,), dtype=np.float32)
-        })
+        if "dim" in self.env_params.get("observation", {}):
+            dim = self.env_params["observation"]["dim"]
+            self.observation_space = spaces.Box(low=0, high=1, shape=(dim,), dtype=np.float32)
+        else:
+            self.observation_space = spaces.Box(low=0, high=1, shape=(16,), dtype=np.float32)
 
     def _init_reward(self):
         reward_params = self.env_params["reward"]
@@ -176,7 +201,6 @@ class NavigationEnv(gym.Env):
                 InterpolationSphericalDirectionReward("interpolation_spherical_direction_reward", active["interpolation_spherical_direction_reward"])
             )
 
-
         if "terminal_reward" in active:
             arrival_reward = reward_params["extra_rewards"]["arrival_reward"]
             collision_penalty = reward_params["extra_rewards"]["collision_penalty"]
@@ -190,11 +214,12 @@ class NavigationEnv(gym.Env):
         self.step_count = 0
         # 3. 重置初始位置、目标位置
         self.sim.drone.target_position = self.generate_target_positions()
+        self.sim.drone.set_orientation()
+        # 3. 获取初始观测
+        obs = self.get_obs()
         # 初始化每个组件的回合累计奖励
         self.episode_total_reward = 0
         self.episode_component_rewards = {comp.name: 0.0 for comp in self.reward_components}
-        # 3. 获取初始观测
-        obs = self.get_obs()
         return obs
     
     def step(self, action:np.ndarray):
@@ -203,19 +228,18 @@ class NavigationEnv(gym.Env):
         # === 1. 施加动作并推进仿真 ===
         action = action.squeeze()
         velocity = self.compute_velocity_from_action(action)
-        is_collided, nearest_info = self.sim.step(velocity)
+        is_collided, nearest_info = self.sim.step(velocity, self._action_repeat)
         is_arrived = self.check_arrived()
-        is_step_limited = self.step_count >= self.env_params['episode']['max_episode_timesteps']
+        is_timeout = self.step_count >= self._max_episode_steps
         
         # === 2. 状态判断 ===
-        done = is_collided or is_arrived or is_step_limited
+        done = is_collided or is_arrived or is_timeout
+
+        self.sim.drone.set_orientation()
 
         # === 3. 观测 ===
         obs = self.get_obs()
 
-        # if is_collided:
-        #     depth_min = np.min(obs['depth_image'])
-        #     print(depth_min)
        # === 4. 奖励计算（基于奖励组件系统）===
         total_reward, component_rewards = self.get_reward(obs, is_arrived, is_collided)  # get_reward返回总奖励 + 子项奖励字典
 
@@ -223,28 +247,39 @@ class NavigationEnv(gym.Env):
         info = dict(
             step_count=self.step_count,
             done=done,
-            total_reward=total_reward,
             collision=is_collided,
             arrival=is_arrived,
-            step_limited=is_step_limited,
+            timeout=is_timeout,
         )
-        # === 加入每个 reward component 的 step 级奖励 ===
+
         for name, reward in component_rewards.items():
-            info[f"reward/{name}"] = reward
+            self.episode_component_rewards[name] += reward  # 累加每个 reward component
+        self.episode_total_reward += sum(component_rewards.values())  # 总奖励累计
+
+        if done:
+            # 将 episode 累积奖励加入 info（这样外部可以访问到它）
+            info["episode/total_reward"] = self.episode_total_reward
+            for name, total in self.episode_component_rewards.items():
+                info[f"episode/{name}"] = total
 
         return obs, total_reward, done, info    
 
     def generate_target_positions(self):
-        bounds = self.env_params['scene']['region']
-
-        target_position = np.array([
-            random.uniform(bounds['x_min'], bounds['x_max']),
-            random.uniform(bounds['y_min'], bounds['y_max']),
-            random.uniform(bounds['z_min'], bounds['z_max']),
-        ])
-
-        return target_position         
-
+        while True:
+            # 从 scene_region 中采样位置
+            x = np.random.uniform(self.sim.scene_region["x_min"], self.sim.scene_region["x_max"])
+            y = np.random.uniform(self.sim.scene_region["y_min"], self.sim.scene_region["y_max"])
+            z = np.random.uniform(self.sim.scene_region["z_min"], self.sim.scene_region["z_max"])
+            target_position = [x, y, z]
+            
+            # 检查位置是否与障碍物碰撞
+            is_collided, _ = self.sim.drone.check_collision(threshold=10.0)
+            if not is_collided:
+                logging.info("🚁 目标位置安全，无碰撞")
+                return target_position  # 如果没有碰撞，返回当前生成的位置
+            else:
+                logging.warning("🚨 目标位置与障碍物发生碰撞，重新生成位置")    
+            
     def get_obs(self):
         """
         获取当前无人机的动态观测，根据需求选择观测特征。
@@ -252,91 +287,6 @@ class NavigationEnv(gym.Env):
         返回：
             np.array: 拼接后的观测数据
         """
-        # 获取当前无人机的位置、速度、朝向和目标，根据需求拼接不同的特征
-        observation = []
-        observation_features = self.env_params['observation']['features']
-        drone_state = self.sim.drone.state # 获取 DroneState 对象
-
-        if "position" in observation_features:
-            observation.extend(drone_state.position)  # 添加位置 [x, y, z]
-
-        if "velocity" in observation_features:
-            observation.extend(drone_state.linear_velocity)  # 添加线速度 [vx, vy, vz]
-
-        if "spherical_velocity" in observation_features:
-            velocity = drone_state.linear_velocity
-            v = np.linalg.norm(velocity)
-            if v < 1e-6:
-                theta = 0.0  # 默认方向
-                phi = 0.0
-            else:
-                theta = np.arccos(velocity[2] / v)        # 极角 θ ∈ [0, π]
-                phi = np.arctan2(velocity[1], velocity[0])  # 方位角 φ ∈ [-π, π]
-
-            observation.extend([v, theta, phi])
-
-        if "orientation" in observation_features:
-            observation.extend(drone_state.euler)  # 添加朝向（欧拉角）[roll, pitch, yaw]
-        
-        if "target" in observation_features:
-            observation.extend(self.sim.drone.target_position)  # 添加目标位置
-
-        if "spherical_target_relative_position" in observation_features:
-            # 获取当前位置和目标位置
-            pos = drone_state.position
-            target = self.sim.drone.target_position
-            diff = np.array(target) - np.array(pos)  # 差向量 [dx, dy, dz]
-            
-            dx, dy, dz = diff
-            r = np.linalg.norm(diff) + 1e-6  # 距离（防止除以 0）
-            theta = np.arccos(dz / r)        # 极角
-            phi = np.arctan2(dy, dx)         # 方位角
-            
-            observation.extend([r, theta, phi])
-        
-        if "spherical_direction_error" in observation_features:
-            pos = np.array(drone_state.position)
-            vel = np.array(drone_state.linear_velocity)
-            target = np.array(self.sim.drone.target_position)
-
-            # 当前速度单位向量
-            if np.linalg.norm(vel) > 1e-6:
-                velocity_dir = vel / np.linalg.norm(vel)
-            else:
-                velocity_dir = np.zeros(3)
-
-            # 目标方向单位向量
-            diff = target - pos
-            if np.linalg.norm(diff) > 1e-6:
-                target_dir = diff / np.linalg.norm(diff)
-            else:
-                target_dir = np.zeros(3)
-
-            # --- 球坐标计算 ---
-            def cartesian_to_spherical(vec):
-                x, y, z = vec
-                r = np.linalg.norm(vec)
-                if r < 1e-6:
-                    return 0.0, 0.0  # 默认方向
-                theta = np.arccos(z / r)       # 极角 θ ∈ [0, π]
-                phi = np.arctan2(y, x)         # 方位角 φ ∈ [-π, π]
-                return theta, phi
-
-            theta_v, phi_v = cartesian_to_spherical(velocity_dir)
-            theta_t, phi_t = cartesian_to_spherical(target_dir)
-
-            # 俯仰方向（极角）：
-            delta_theta = theta_t - theta_v
-            delta_theta_norm = (delta_theta + np.pi) / (2 * np.pi)   # ∈ [0, 1]
-
-            # 偏航方向（方位角）：
-            delta_phi = (phi_t - phi_v + np.pi) % (2 * np.pi) - np.pi
-            delta_phi_norm = (delta_phi + np.pi) / (2 * np.pi)       # ∈ [0, 1]
-
-
-            observation.extend([delta_theta_norm, delta_phi_norm])
-                
-        self_position = np.array(observation)
 
         # 获取深度图信息（前方障碍物距离）每个像素是一个浮点数，介于 [0,1] 之间
         # 靠近相机的物体 → 深度值接近0
@@ -344,14 +294,17 @@ class NavigationEnv(gym.Env):
         # 如果看向空无一物的地方，深度值趋近于 far
         # 是二维矩阵，比如 shape = (240, 320)
         depth_image = self.sim.drone.get_depth_image()
+        if "grid_shape" in self.env_params.get("observation", {}):
+            grid_shape = self.env_params["observation"]["grid_shape"]
+            grid_shape_tuple = ast.literal_eval(grid_shape)
+        else:
+            grid_shape_tuple = (4,4)
+        obs = self.pool_depth_image(depth_image, grid_shape_tuple)
+        flatten_obs = obs.flatten()
 
         # 拼接当前无人机的状态信息和深度图信息
-        obs = {
-            "depth_image": depth_image,       # shape: [224, 224]，可扩展通道
-            "state": self_position          # shape: [n]
-        }
 
-        return obs
+        return flatten_obs
     
     def get_reward(self, obs, is_arrived, is_collided):
         """
@@ -386,7 +339,7 @@ class NavigationEnv(gym.Env):
         distance_to_target = np.linalg.norm(np.array(self.sim.drone.state.position) - np.array(self.sim.drone.target_position))
         return distance_to_target <= arrival_threshold  # 如果距离小于阈值，认为到达目标
 
-    def compute_velocity_from_action(self, action: np.ndarray, mode: str = "adjust"):
+    def compute_velocity_from_action(self, action: np.ndarray):
         """
         根据指定 mode 解释动作，并执行对应控制。
 
@@ -394,6 +347,8 @@ class NavigationEnv(gym.Env):
             action (np.ndarray): 动作向量
             mode (str): 控制模式，可为 'cartesian', 'spherical', 'adjust'
         """
+        mode = self.env_params["action"]["type"]
+        
         if mode == "cartesian":
             new_velocity = np.array(action, dtype=np.float32)
 
@@ -412,16 +367,21 @@ class NavigationEnv(gym.Env):
             # 目标速度设定
             v_horiz = 15.0  # 水平速度
             v_vert = 5.0    # 垂直速度
+            # 获取当前位置与目标位置
+            current_position = np.array(self.sim.drone.state.position)
+            target_position = np.array(self.sim.drone.target_position)
 
-            current_v = np.array(self.sim.drone.state.linear_velocity)
-            norm = np.linalg.norm(current_v)
+            # 用目标方向替代当前速度方向
+            direction_vector = target_position - current_position
+            norm = np.linalg.norm(direction_vector)
 
             if norm < 1e-3:
                 theta = np.pi / 2
                 phi = 0.0
             else:
-                theta = np.arccos(current_v[2] / norm)
-                phi = np.arctan2(current_v[1], current_v[0])
+                # 计算从当前位置指向目标位置的方向角
+                theta = np.arccos(direction_vector[2] / norm)  # 极角（俯仰）
+                phi = np.arctan2(direction_vector[1], direction_vector[0])  # 方位角（偏航）
 
             theta_new = np.clip(theta + delta_theta, 0, np.pi)
             phi_new = phi + delta_phi
@@ -444,10 +404,151 @@ class NavigationEnv(gym.Env):
             vz = v_vert * np.sign(vz_unit)
 
             new_velocity = np.array([vx, vy, vz], dtype=np.float32)
+        
+        elif mode == "discrete_adjust":
+            delta_theta, delta_phi = self.action_idx_to_delta[action]
+            
+            # # 目标速度设定
+            speed = 15.0
+            # 获取当前位置与目标位置
+            current_position = np.array(self.sim.drone.state.position)
+            target_position = np.array(self.sim.drone.target_position)
+
+            # 用目标方向替代当前速度方向
+            direction_vector = target_position - current_position
+            norm = np.linalg.norm(direction_vector)
+
+            if norm < 1e-3:
+                theta = np.pi / 2
+                phi = 0.0
+            else:
+                # 计算从当前位置指向目标位置的方向角
+                theta = np.arccos(direction_vector[2] / norm)  # 极角（俯仰）
+                phi = np.arctan2(direction_vector[1], direction_vector[0])  # 方位角（偏航）
+
+            theta_new = np.clip(theta + delta_theta, 0, np.pi)
+            phi_new = phi + delta_phi
+
+            # 构造单位方向向量（方向确定，但模长与速度无关）
+            vx_unit = np.sin(theta_new) * np.cos(phi_new)
+            vy_unit = np.sin(theta_new) * np.sin(phi_new)
+            vz_unit = np.cos(theta_new)
+
+            # 计算速度向量（单位向量乘以速度大小）
+            vx = speed * vx_unit
+            vy = speed * vy_unit
+            vz = speed * vz_unit
+
+            new_velocity = np.array([vx, vy, vz], dtype=np.float32)
+        
+        elif mode == "discrete_adjust_2":
+            delta_theta, delta_phi = self.action_idx_to_delta[action]
+            
+            # # 目标速度设定
+            v_horiz = 15.0  # 水平速度
+            v_vert = 5.0    # 垂直速度
+            # 获取当前位置与目标位置
+            current_position = np.array(self.sim.drone.state.position)
+            target_position = np.array(self.sim.drone.target_position)
+
+            # 用目标方向替代当前速度方向
+            direction_vector = target_position - current_position
+            norm = np.linalg.norm(direction_vector)
+
+            if norm < 1e-3:
+                theta = np.pi / 2
+                phi = 0.0
+            else:
+                # 计算从当前位置指向目标位置的方向角
+                theta = np.arccos(direction_vector[2] / norm)  # 极角（俯仰）
+                phi = np.arctan2(direction_vector[1], direction_vector[0])  # 方位角（偏航）
+
+            theta_new = np.clip(theta + delta_theta, 0, np.pi)
+            phi_new = phi + delta_phi
+
+            # 构造单位方向向量（方向确定，但模长与速度无关）
+            vx_unit = np.sin(theta_new) * np.cos(phi_new)
+            vy_unit = np.sin(theta_new) * np.sin(phi_new)
+            vz_unit = np.cos(theta_new)
+
+            # 归一化水平分量向量
+            horiz_norm = np.linalg.norm([vx_unit, vy_unit])
+            if horiz_norm < 1e-6:
+                vx = 0.0
+                vy = 0.0
+            else:
+                vx = v_horiz * (vx_unit / horiz_norm)
+                vy = v_horiz * (vy_unit / horiz_norm)
+
+            # 垂直速度直接设为固定模长（方向由 theta_new 决定）
+            vz = v_vert * np.sign(vz_unit)
+
+            new_velocity = np.array([vx, vy, vz], dtype=np.float32)
+        
+        
+
+        elif mode in ["horizon_discrete_adjust_3", "horizon_discrete_adjust_5", "horizon_discrete_adjust_7"]:
+            delta_phi = self.action_idx_to_delta[action]
+
+            # 目标速度设定
+            speed = 15.0
+            # 获取当前位置与目标位置
+            current_position = np.array(self.sim.drone.state.position)
+            target_position = np.array(self.sim.drone.target_position)
+
+            # 用目标方向替代当前速度方向
+            direction_vector = target_position - current_position
+            norm = np.linalg.norm(direction_vector)
+
+            if norm < 1e-3:
+                theta = np.pi / 2
+                phi = 0.0
+            else:
+                # 计算从当前位置指向目标位置的方向角
+                theta = np.arccos(direction_vector[2] / norm)  # 极角（俯仰）
+                phi = np.arctan2(direction_vector[1], direction_vector[0])  # 方位角（偏航）
+
+            theta_new = theta
+            phi_new = phi + delta_phi
+
+            # 构造单位方向向量（方向确定，但模长与速度无关）
+            vx_unit = np.sin(theta_new) * np.cos(phi_new)
+            vy_unit = np.sin(theta_new) * np.sin(phi_new)
+            vz_unit = np.cos(theta_new)
+
+            # 计算速度向量（单位向量乘以速度大小）
+            vx = speed * vx_unit
+            vy = speed * vy_unit
+            vz = speed * vz_unit
+
+            new_velocity = np.array([vx, vy, vz], dtype=np.float32)
 
         else:
             raise ValueError(f"Unsupported action mode: '{mode}'. Expected 'cartesian', 'spherical', or 'adjust'.")
              
         return new_velocity
 
+    def pool_depth_image(self, depth_image, grid_shape=(4, 4)):
+        """
+        对深度图进行最小池化，按网格划分。
+        参数:
+            depth_image: np.ndarray, shape=(H, W)
+            grid_shape: tuple, (rows, cols)
+        返回:
+            pooled: np.ndarray, shape=(rows, cols)
+        """
+        assert isinstance(depth_image, np.ndarray), "Input must be a NumPy array"
+        assert depth_image.ndim == 2, f"Expected 2D array, got {depth_image.shape}"
 
+        H, W = depth_image.shape
+        rows, cols = grid_shape
+        h_step, w_step = H // rows, W // cols
+
+        pooled = np.empty((rows, cols), dtype=depth_image.dtype)
+
+        for i in range(rows):
+            for j in range(cols):
+                region = depth_image[i*h_step:(i+1)*h_step, j*w_step:(j+1)*w_step]
+                pooled[i, j] = np.min(region)
+
+        return pooled

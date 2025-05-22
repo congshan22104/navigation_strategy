@@ -23,6 +23,9 @@ env_params:
   drone:
     init_pos:  random # 无人机初始位置 (x, y, z)[0.0, 0.0, 60.0]
     urdf_path: "assets/cf2x.urdf" # 无人机模型路径
+  action:
+    type: horizon_discrete_adjust_3
+    range: 1/8
   reward:
     extra_rewards:
       arrival_reward: 5.0 # 成功到达目标奖励
@@ -37,12 +40,12 @@ env_params:
       # terminal_reward: 1.0
       # target_progress_reward: 0.8
       # velocity_reward: 0.3
-      image_nonlinear_collision_penalty: 0.3
-      # image_nonlinear_collision_penalty_2: 0.6
-      # image_linear_collision_penalty: 0.3
+      # image_nonlinear_collision_penalty: 1.0
+      image_nonlinear_collision_penalty_2: 1.0
+      # image_linear_collision_penalty: 1.0
       # cosine_spherical_direction_reward: 0.7
       # cosine_spherical_direction_reward_2: 0.7
-      tanh_spherical_direction_reward: 0.7
+      # tanh_spherical_direction_reward: 0.7
       # interpolation_spherical_direction_reward: 0.7
   episode:
     max_episode_timesteps: 200 # 每回合最大步数
@@ -50,12 +53,15 @@ env_params:
     save_freq: 20
     num_test_episodes: 20
   observation:
+    dim: 9
+    grid_shape: (1,9)
     normalize: True
     to_real_distance: False
     features:
       # - spherical_velocity
       # - target_relative_position
-      - spherical_direction_error
+      # - target_direction
+      # - spherical_direction_error
   
 
 
@@ -75,19 +81,19 @@ net_arch:
   vf: [128, 128, 64]
 # ========== PPO初始化参数 ==========
 ppo_init_params:
-  policy: "MultiInputPolicy" # 使用的策略网络
+  policy: "MlpPolicy" # 使用的策略网络
   learning_rate: 0.0003
   n_steps: 2048
-  batch_size: 256
+  batch_size: 64
   n_epochs: 10
   gamma: 0.99
-  gae_lambda: 0.95
+  gae_lambda: 0.99
   clip_range: 0.2
   ent_coef: 0.01 # 增加策略熵奖励，引导更多探索
-  vf_coef: 0.5      # 提高 critic 损失比重
+  vf_coef: 2      # 提高 critic 损失比重
   max_grad_norm: 0.5
   verbose: 1
-  device: "cuda:2" # 指定使用第1块GPU
+  device: "cuda:1" # 指定使用第1块GPU
   seed: 0 # 随机种子（可复现）
 # ------------- SAC初始化参数 -------------
 sac_init_params:
@@ -102,7 +108,7 @@ sac_init_params:
   gradient_steps: 1
   ent_coef: "auto"
   verbose: 1
-  device: "cuda:3"
+  device: "cuda:2"
   seed: 4
 # ------------- TD3初始化参数 -------------
 td3_init_params:

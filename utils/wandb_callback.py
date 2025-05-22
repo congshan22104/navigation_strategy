@@ -40,7 +40,7 @@ class WandbCallback(BaseCallback):
         for info in infos:
             # === 累积当前 step 的各组件奖励 ===
             for key, value in info.items():
-                if key.startswith("reward/"):
+                if key.startswith("episode/"):
                     comp = key.split("/")[1]  # e.g. "target_progress"
                     self.current_episode_rewards[comp] = self.current_episode_rewards.get(comp, 0.0) + value
 
@@ -56,7 +56,7 @@ class WandbCallback(BaseCallback):
                 for comp, total_reward in self.current_episode_rewards.items():
                     metrics[f"train/{comp}"] = total_reward
 
-                metrics["train/total_reward"] = info.get("total_reward", 0.0)
+                metrics["train/total_reward"] = info.get("episode/total_reward", 0.0)
                 metrics["train/length"] = info.get("step_count", 0)
                 metrics["train/success_rate"] = self.episode_successes / self.episode_count
                 metrics["train/collision_rate"] = self.episode_collisions / self.episode_count

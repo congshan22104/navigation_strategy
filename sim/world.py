@@ -137,10 +137,9 @@ class World:
         self._spawn_drone()
         logging.info("仿真环境重置完成。")
 
-    def step(self, velocity, num_steps=60):
+    def step(self, velocity, num_steps=30):
         is_collided = False
         collision_check_interval = 30
-        orn = self.drone.set_orientation_from_velocity(velocity,)
         for i in range(num_steps):
             p.resetBaseVelocity(self.drone.id, linearVelocity=velocity)
             p.stepSimulation()
@@ -149,7 +148,6 @@ class World:
                 is_collided, nearest_info = self.drone.check_collision()
                 if is_collided:
                     break
-            
         if self.use_gui:
             self.drone.draw_trajectory()
         self.drone.update_state()
