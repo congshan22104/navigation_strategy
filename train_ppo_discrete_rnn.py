@@ -43,8 +43,8 @@ class Runner:
             level=logging.INFO,
             format='[%(levelname)s] %(asctime)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
-            filename=log_file,
-            filemode='w'  # 'w' 每次重新写，'a' 是追加写
+            # filename=log_file,
+            # filemode='w'  # 'w' 每次重新写，'a' 是追加写
         )
         
         # 示例日志输出
@@ -147,7 +147,7 @@ class Runner:
             'ac': self.agent.ac.state_dict(),
         }, model_path)
         logging.info(f"[INFO] Saved model to {model_path}")
-        
+
         evaluate_num += 1
         eval_metrics = self.evaluate_policy()
         wandb.log(eval_metrics, step=self.total_steps)
@@ -237,8 +237,8 @@ if __name__ == '__main__':
     parser.add_argument("--save_freq", type=int, default=20, help="Save frequency")
     parser.add_argument("--evaluate_times", type=float, default=3, help="Evaluate times")
 
-    parser.add_argument("--batch_size", type=int, default=15, help="Batch size")
-    parser.add_argument("--mini_batch_size", type=int, default=64, help="Minibatch size")
+    parser.add_argument("--batch_size", type=int, default=16, help="Batch size")
+    parser.add_argument("--mini_batch_size", type=int, default=2, help="Minibatch size")
     parser.add_argument("--hidden_dim", type=int, default=64, help="The number of neurons in hidden layers of the neural network")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate of actor")
     parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")

@@ -271,9 +271,10 @@ class NavigationEnv(gym.Env):
             y = np.random.uniform(self.sim.scene_region["y_min"], self.sim.scene_region["y_max"])
             z = np.random.uniform(self.sim.scene_region["z_min"], self.sim.scene_region["z_max"])
             target_position = [x, y, z]
+
+            # Get the nearest obstacle distance for the target position
+            is_collided, _ = self.check_target_collision(target_position, max_check_distance=10.0)
             
-            # 检查位置是否与障碍物碰撞
-            is_collided, _ = self.sim.drone.check_collision(threshold=10.0)
             if not is_collided:
                 logging.info("🚁 目标位置安全，无碰撞")
                 return target_position  # 如果没有碰撞，返回当前生成的位置
@@ -552,3 +553,63 @@ class NavigationEnv(gym.Env):
                 pooled[i, j] = np.min(region)
 
         return pooled
+
+    def check_target_collision(self, target_position, max_check_distance = 10.0):
+        target_radius = 1
+        # 创建可视化形状（红色半透明球）
+        visual_shape_id = p.createVisualShape(
+            shapeType=p.GEOM_SPHERE,
+            radius=target_radius,
+            rgbaColor=[1, 0, 0, 0.5],  # 红色，半透明
+        )
+
+        # 创建碰撞形状
+        collision_shape_id = p.createCollisionShape(
+            shapeType=p.GEOM_SPHERE,
+            radius=target_radius
+        )
+
+        # 创建带可视化和碰撞的临时球体
+        target_id = p.createMultiBody(
+            baseMass=0,
+            baseCollisionShapeIndex=collision_shape_id,
+            baseVisualShapeIndex=visual_shape_id,
+            basePosition=target_position
+        )
+        min_distance = max_check_distance  # Initialize with max_check_distance
+        nearest_info = None
+
+        # Iterate through all bodies, excluding the current object (target_id)
+        for body_id in range(p.getNumBodies()):
+            if body_id != target_id:
+                # Retrieve closest points between self and another body
+                closest_points = p.getClosestPoints(
+                    bodyA=target_id,
+                    bodyB=body_id,
+                    distance=max_check_distance
+                )
+
+                for point in closest_points:
+                    # Point[8] contains the distance between two bodies
+                    distance = point[8]
+                    if distance < min_distance:
+                        min_distance = distance
+                        try:
+                            # Attempt to retrieve the body name, handle any exceptions
+                            body_name = p.getBodyInfo(body_id)[1].decode('utf-8')
+                        except Exception as e:
+                            body_name = f"Unknown (ID: {body_id})"
+                        
+                        nearest_info = {
+                            "id": body_id,
+                            "name": body_name,
+                            "distance": distance,
+                            "position": point[6]  # Point[6] contains the contact position
+                        }
+        p.removeBody(target_id)  # 清除临时球体
+        if nearest_info:
+            # p.removeBody(target_id)  # 清除临时球体
+            return True, nearest_info
+        else:
+            return False, None
+
