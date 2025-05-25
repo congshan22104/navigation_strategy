@@ -43,8 +43,8 @@ class Runner:
             level=logging.INFO,
             format='[%(levelname)s] %(asctime)s - %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S',
-            # filename=log_file,
-            # filemode='w'  # 'w' 每次重新写，'a' 是追加写
+            filename=log_file,
+            filemode='w'  # 'w' 每次重新写，'a' 是追加写
         )
         
         # 示例日志输出
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     parser.add_argument("--algo_name", type=str, default="ppo_discrete")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max_train_steps", type=int, default=int(5e5), help=" Maximum number of training steps")
-    parser.add_argument('--device', type=str, default='cuda:0', help='Device to use, e.g., "cuda:0" or "cpu"')
+    parser.add_argument('--device', type=str, default='cuda:1', help='Device to use, e.g., "cuda:0" or "cpu"')
     parser.add_argument("--evaluate_freq", type=float, default=5e3, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--save_freq", type=int, default=20, help="Save frequency")
     parser.add_argument("--evaluate_times", type=float, default=3, help="Evaluate times")
