@@ -77,5 +77,5 @@ def main(run_dir):
     tester = ModelTester(env_params, num_test_episodes=100)
     tester._test_model_from_path(model_path)
 if __name__ == "__main__":
-    run_dir = "/home/congshan/uav/uav_roundup/navigation_strategy_2/logs/ppo_i_s0_0520_1628"
+    run_dir = "/home/congshan/uav/uav_roundup/navigation_strategy_2/result/ppo_discrete_rnn_s0_0523_103530"
     main(run_dir)
