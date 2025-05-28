@@ -367,7 +367,6 @@ class NavigationEnv(gym.Env):
     def compute_velocity_from_action(self, action: np.ndarray):
         """
         根据指定 mode 解释动作，并执行对应控制。
-
         参数:
             action (np.ndarray): 动作向量
             mode (str): 控制模式，可为 'cartesian', 'spherical', 'adjust'
