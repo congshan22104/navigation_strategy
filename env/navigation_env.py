@@ -286,7 +286,7 @@ class NavigationEnv(gym.Env):
             for name, total in self.episode_component_rewards.items():
                 info[f"episode/{name}"] = total
 
-        return obs, total_reward, done, info    
+        return obs, total_reward, done, info     
 
     def generate_target_positions(self):
         while True:
